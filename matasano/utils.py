@@ -1,5 +1,7 @@
 import binascii
-from itertools import zip_longest
+from Crypto import Random
+from Crypto.Cipher import AES
+import itertools
 from math import ceil
 import string
 
@@ -28,13 +30,12 @@ def ascii_to_raw(ascii_string):
     while isinstance(ascii_string, list):
         ascii_string = ''.join([element for element in ascii_string])
     return bytes(ascii_string, 'ascii')
-    # return [ord(letter) for letter in ascii_string]
 
 def fixed_xor(msg, key):
     msg, key = list(msg), list(key)
-    if len(msg) != len(msg):
-        raise ValueError("Msg and key lenghts do not match.")
-    return [msg[i] ^ key[i] for i in range(0,len(msg))]
+    if len(msg) != len(key):
+        raise ValueError("Msg and key lenghts do not match. msg {}, key {}".format(len(msg),len(key)))
+    return bytes([msg[i] ^ key[i] for i in range(0,len(msg))])
 
 def score_plaintext(plaintext):
     ETAOIN = 'ETAOINSHRDLCUMWFGYPBVKJXQZ '
@@ -68,4 +69,19 @@ def break_raw_into_chunks(raw, chunksize):
     return blocks
 
 def transpose_blocks(blocks):
-    return [block for block in zip_longest(*blocks, fillvalue=0)]
+    return [block for block in itertools.zip_longest(*blocks, fillvalue=0)]
+
+def aes_cbc_encrypt(key, msg):
+    block_size = len(key)
+    padding = block_size - (len(msg) % block_size)
+    msg = msg + chr(padding) * padding
+    iv = Random.new().read(block_size)
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    return iv + cipher.encrypt(msg)
+
+def aes_cbc_decrypt(key, cpt):
+    block_size = len(key)
+    iv, cpt = cpt[:block_size], cpt[block_size:]
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    msg = cipher.decrypt(cpt)
+    return msg[:-msg[-1]]
