@@ -19,7 +19,7 @@ def challenge10():
     cipher = AES.new(key, AES.MODE_ECB)
     
     for this_cpt in cpt_blocks:
-        this_msg = fixed_xor(cipher.decrypt(this_cpt), iv)
+        this_msg = xor(cipher.decrypt(this_cpt), iv)
         iv = this_cpt
         msg += this_msg
 
@@ -101,12 +101,12 @@ def challenge13():
 
     # Real response
     # 'email=foo@AAAbar' '.co&uid=10&role=' 'user'+0xc*12
-    # Creating artificial role block with 'foo@AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAadmin'+'\x0b'*11+'.co'
-    # 'email=foo@AAAAAA' 'AAAAAAAAAAAAAAAA' 'AAAAAAAAAAAAAAAA' 'admin'+0xb*11 '.co&uid=10&role=' 'user'+0xc*12
+    # Creating artificial role block with 'foo@BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBAAadmin'+'\x0b'*11+'.co'
+    # 'email=foo@AAAAAA' 'BBBBBBBBBBBBAAAA' 'BBBBBBBBBBBBAAAA' 'admin'+0xb*11 '.co&uid=10&role=' 'user'+0xc*12
     # Just have to replace the last block on the real ciphertext with the forth block in the artificial response
 
     cpt = break_raw_into_chunks(profile_for('foo@AAAbar.co'),16)
-    fake_cpt = break_raw_into_chunks(profile_for('foo@AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAadmin'+'\x0b'*11+'.co'),16)
+    fake_cpt = break_raw_into_chunks(profile_for('foo@BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBAAadmin'+'\x0b'*11+'.co'),16)
     cpt[-1] = fake_cpt[3]
 
     return check_result(b''.join(cpt))
@@ -122,7 +122,6 @@ def challenge14():
         return aes_ecb_encrypt(key, prepend+ascii_to_raw(msg)+append)
 
     block_size = discover_block_size(oracle)
-    # max_size_of_prepended_text = find_max_size_of_prepended_text(block_size)
     return aes_ecb_find_secret_appended_text(oracle, block_size)
 
 def challenge15():
@@ -154,19 +153,32 @@ def challenge16():
 
     def check_if_admin(cpt):
         msg = raw_to_ascii(aes_cbc_decrypt(key, cpt))
-        for pair in msg.split(';'):
-            pair = pair.split('=')
-            if pair[0] in 'admin' and pair[1] in 'true': return True
+        for pair in [pair.split('=') for pair in msg.split(';')]:
+            if len(pair) > 1:
+                if  pair[0] in 'admin' and pair[1] in 'true':
+                    return True
         return False
 
-    cpt = break_raw_into_chunks(oracle('thisisevilblock!' + 'AAAAA|admin|true'), 16)
+
+    # cpt = break_raw_into_chunks(oracle('thisisevilblock!' + 'AAAAA|admin|true'), 16)
     
-    # Need to change cpt[3] to impact the clear text of cpt[4]
-    new_fourth_block = list(cpt[3])
-    new_fourth_block[5] = new_fourth_block[5] ^ ord('|') ^ ord(';')
-    new_fourth_block[11] = new_fourth_block[11] ^ ord('|') ^ ord('=')
-    cpt[3] = bytearray(new_fourth_block)
-    return check_if_admin(b''.join(cpt))
+    # # Need to change cpt[3] to impact the clear text of cpt[4]
+    # new_fourth_block = list(cpt[3])
+    # new_fourth_block[5] = new_fourth_block[5] ^ ord('|') ^ ord(';')
+    # new_fourth_block[11] = new_fourth_block[11] ^ ord('|') ^ ord('=')
+    # cpt[3] = bytearray(new_fourth_block)
+    # return check_if_admin(b''.join(cpt))
+
+    for i in range(len(key)):  # 'BBBBBBBBBBBB' needs to be within a single block, so 'A' padding will be varied until we get it right
+        cpt = oracle('A'*i + 'BBBBBBBBBBBB')
+        gen =  cpt_bit_flipping(cpt, 'BBBBBBBBBBBB', ';admin=true;')
+        while True:
+            try:
+                flipped = next(gen)
+                if check_if_admin(flipped):
+                    return True
+            except ValueError as e:
+                pass
 
 if __name__ == '__main__':
     print(challenge16())

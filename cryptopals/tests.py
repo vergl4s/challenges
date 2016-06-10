@@ -28,4 +28,19 @@ assert(challenge17() == [b'000000Now that the party is jumping', b"000001With th
 assert(challenge18() == b"Yo, VIP Let's kick it Ice, Ice, baby Ice, Ice, baby ")
 assert('I HAVE MET THEM' in raw_to_ascii(challenge19()[0]).upper())  # to account for inconsistent case in results
 assert(b'I\'m rated "R"...this is a warning' in challenge20()[0])
+assert(challenge21() == 1145397902)
+assert(challenge22() is True)
+# assert(challenge23())
+assert(challenge24() is True)
+
+from set4 import *
+assert(challenge25() is True)
+assert(challenge26() is True)
+assert(challenge27() is True)
+assert(challenge28() is True)
+assert(challenge29() is True)
+assert(challenge30() is True)
+
+test_cipher_detection()
+
 print('All good!')

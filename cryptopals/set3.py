@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import random
 import string
+import time
 from utils import *
 
 def challenge17():
@@ -37,7 +38,7 @@ def challenge17():
                     intermediate_msg2[-i] = j ^ i
                     break
 
-        return fixed_xor(cpt1, intermediate_msg2)
+        return xor(cpt1, intermediate_msg2)
 
     decrypted_cookies = []
     for msg in msgs:
@@ -59,10 +60,7 @@ def challenge18():
     # ctr2, cpt2 = Counter.new(128, initial_value=int.from_bytes(cpt2[:16], 'big')), cpt2[16:]
     # print(aes_ctr_encrypt(key1, cpt1, ctr1))
     # print(aes_ctr_encrypt(key2, cpt2, ctr2))
-    
-def challenge19():
-    # Break fixed-nonce CTR mode using substitions
-    
+
     # Example of different CTR counters
     # common_counters_imo = [ctr for sublist in [
     #     [Counter.new(8*8, little_endian=True, initial_value = i, prefix=b'\x00'*8) for i in range(16)],
@@ -72,25 +70,34 @@ def challenge19():
     #     [Counter.new(128, little_endian=True, initial_value=int.from_bytes(ascii_to_raw(c*16),'big')) for c in string.printable],
     # ] for ctr in sublist]
 
+def challenge19():
+    # Break xor-nonce CTR mode using substitions
+
     key = Random.new().read(16)
     msgs = [b64_to_raw('SSBoYXZlIG1ldCB0aGVtIGF0IGNsb3NlIG9mIGRheQ=='),b64_to_raw('Q29taW5nIHdpdGggdml2aWQgZmFjZXM='),b64_to_raw('RnJvbSBjb3VudGVyIG9yIGRlc2sgYW1vbmcgZ3JleQ=='),b64_to_raw('RWlnaHRlZW50aC1jZW50dXJ5IGhvdXNlcy4='),b64_to_raw('SSBoYXZlIHBhc3NlZCB3aXRoIGEgbm9kIG9mIHRoZSBoZWFk'),b64_to_raw('T3IgcG9saXRlIG1lYW5pbmdsZXNzIHdvcmRzLA=='),b64_to_raw('T3IgaGF2ZSBsaW5nZXJlZCBhd2hpbGUgYW5kIHNhaWQ='),b64_to_raw('UG9saXRlIG1lYW5pbmdsZXNzIHdvcmRzLA=='),b64_to_raw('QW5kIHRob3VnaHQgYmVmb3JlIEkgaGFkIGRvbmU='),b64_to_raw('T2YgYSBtb2NraW5nIHRhbGUgb3IgYSBnaWJl'),b64_to_raw('VG8gcGxlYXNlIGEgY29tcGFuaW9u'),b64_to_raw('QXJvdW5kIHRoZSBmaXJlIGF0IHRoZSBjbHViLA=='),b64_to_raw('QmVpbmcgY2VydGFpbiB0aGF0IHRoZXkgYW5kIEk='),b64_to_raw('QnV0IGxpdmVkIHdoZXJlIG1vdGxleSBpcyB3b3JuOg=='),b64_to_raw('QWxsIGNoYW5nZWQsIGNoYW5nZWQgdXR0ZXJseTo='),b64_to_raw('QSB0ZXJyaWJsZSBiZWF1dHkgaXMgYm9ybi4='),b64_to_raw('VGhhdCB3b21hbidzIGRheXMgd2VyZSBzcGVudA=='),b64_to_raw('SW4gaWdub3JhbnQgZ29vZCB3aWxsLA=='),b64_to_raw('SGVyIG5pZ2h0cyBpbiBhcmd1bWVudA=='),b64_to_raw('VW50aWwgaGVyIHZvaWNlIGdyZXcgc2hyaWxsLg=='),b64_to_raw('V2hhdCB2b2ljZSBtb3JlIHN3ZWV0IHRoYW4gaGVycw=='),b64_to_raw('V2hlbiB5b3VuZyBhbmQgYmVhdXRpZnVsLA=='),b64_to_raw('U2hlIHJvZGUgdG8gaGFycmllcnM/'),b64_to_raw('VGhpcyBtYW4gaGFkIGtlcHQgYSBzY2hvb2w='),b64_to_raw('QW5kIHJvZGUgb3VyIHdpbmdlZCBob3JzZS4='),b64_to_raw('VGhpcyBvdGhlciBoaXMgaGVscGVyIGFuZCBmcmllbmQ='),b64_to_raw('V2FzIGNvbWluZyBpbnRvIGhpcyBmb3JjZTs='),b64_to_raw('SGUgbWlnaHQgaGF2ZSB3b24gZmFtZSBpbiB0aGUgZW5kLA=='),b64_to_raw('U28gc2Vuc2l0aXZlIGhpcyBuYXR1cmUgc2VlbWVkLA=='),b64_to_raw('U28gZGFyaW5nIGFuZCBzd2VldCBoaXMgdGhvdWdodC4='),b64_to_raw('VGhpcyBvdGhlciBtYW4gSSBoYWQgZHJlYW1lZA=='),b64_to_raw('QSBkcnVua2VuLCB2YWluLWdsb3Jpb3VzIGxvdXQu'),b64_to_raw('SGUgaGFkIGRvbmUgbW9zdCBiaXR0ZXIgd3Jvbmc='),b64_to_raw('VG8gc29tZSB3aG8gYXJlIG5lYXIgbXkgaGVhcnQs'),b64_to_raw('WWV0IEkgbnVtYmVyIGhpbSBpbiB0aGUgc29uZzs='),b64_to_raw('SGUsIHRvbywgaGFzIHJlc2lnbmVkIGhpcyBwYXJ0'),b64_to_raw('SW4gdGhlIGNhc3VhbCBjb21lZHk7'),b64_to_raw('SGUsIHRvbywgaGFzIGJlZW4gY2hhbmdlZCBpbiBoaXMgdHVybiw='),b64_to_raw('VHJhbnNmb3JtZWQgdXR0ZXJseTo='),b64_to_raw('QSB0ZXJyaWJsZSBiZWF1dHkgaXMgYm9ybi4='),]
     cpts = [aes_ctr_encrypt(key, m, Counter.new(8*8, initial_value = 0, little_endian=True, prefix=b'\x00'*8)) for m in msgs]
-    keystream = []
-    # Will break keystream one byte at a time by brute forcing possible keystream bytes between 0x00 and 0xff
-    for encrypted_bytes in transpose_blocks(cpts):
-        score = {}
-        for i in range(255):
-            score[i] = score_plaintext(''.join([chr(i^byte) for byte in encrypted_bytes]))
-        keystream.append(sorted(score.items(), key=lambda x: x[1])[-1][0])
 
-    # had good results up to byte 19, although it was a bit inconsistent with capitalization and whitespaces
-    # PS was winging this one through without realizing it is exactly like challenge 3
-    decrypted_msgs = [fixed_xor(keystream[:len(cpt)], cpt) for cpt in cpts]
-    return decrypted_msgs
-    # return True
+    # Original solution
+
+    # keystream = []
+    # # Will break keystream one byte at a time by brute forcing possible keystream bytes between 0x00 and 0xff
+    # for encrypted_bytes in transpose_blocks(cpts):
+    #     score = {}
+    #     for i in range(256):
+    #         score[i] = score_plaintext(''.join([chr(i^byte) for byte in encrypted_bytes]))
+    #     keystream.append(sorted(score.items(), key=lambda x: x[1])[-1][0])
+
+    # # had good results up to byte 19, although it was a bit inconsistent with capitalization and whitespaces
+    # # PS was winging this one through without realizing it is exactly like challenge 3
+    # decrypted_msgs = [xor(keystream[:len(cpt)], cpt) for cpt in cpts]
+    # return decrypted_msgs
+
+    keystream = [single_char_xor_bruteforce(transposed_cpt) for transposed_cpt in transpose_blocks(cpts)]
+
+    return [xor(cpt, keystream[:len(cpt)]) for cpt in cpts]
 
 def challenge20():
-    # Break fixed-nonce CTR statistically
+    # Break xor-nonce CTR statistically
 
     key = Random.new().read(16)
     msgs = [b64_to_raw('SSdtIHJhdGVkICJSIi4uLnRoaXMgaXMgYSB3YXJuaW5nLCB5YSBiZXR0ZXIgdm9pZCAvIFBvZXRzIGFyZSBwYXJhbm9pZCwgREoncyBELXN0cm95ZWQ='),b64_to_raw('Q3V6IEkgY2FtZSBiYWNrIHRvIGF0dGFjayBvdGhlcnMgaW4gc3BpdGUtIC8gU3RyaWtlIGxpa2UgbGlnaHRuaW4nLCBJdCdzIHF1aXRlIGZyaWdodGVuaW4nIQ=='),b64_to_raw('QnV0IGRvbid0IGJlIGFmcmFpZCBpbiB0aGUgZGFyaywgaW4gYSBwYXJrIC8gTm90IGEgc2NyZWFtIG9yIGEgY3J5LCBvciBhIGJhcmssIG1vcmUgbGlrZSBhIHNwYXJrOw=='),b64_to_raw('WWEgdHJlbWJsZSBsaWtlIGEgYWxjb2hvbGljLCBtdXNjbGVzIHRpZ2h0ZW4gdXAgLyBXaGF0J3MgdGhhdCwgbGlnaHRlbiB1cCEgWW91IHNlZSBhIHNpZ2h0IGJ1dA=='),b64_to_raw('U3VkZGVubHkgeW91IGZlZWwgbGlrZSB5b3VyIGluIGEgaG9ycm9yIGZsaWNrIC8gWW91IGdyYWIgeW91ciBoZWFydCB0aGVuIHdpc2ggZm9yIHRvbW9ycm93IHF1aWNrIQ=='),b64_to_raw('TXVzaWMncyB0aGUgY2x1ZSwgd2hlbiBJIGNvbWUgeW91ciB3YXJuZWQgLyBBcG9jYWx5cHNlIE5vdywgd2hlbiBJJ20gZG9uZSwgeWEgZ29uZSE='),b64_to_raw('SGF2ZW4ndCB5b3UgZXZlciBoZWFyZCBvZiBhIE1DLW11cmRlcmVyPyAvIFRoaXMgaXMgdGhlIGRlYXRoIHBlbmFsdHksYW5kIEknbSBzZXJ2aW4nIGE='),b64_to_raw('RGVhdGggd2lzaCwgc28gY29tZSBvbiwgc3RlcCB0byB0aGlzIC8gSHlzdGVyaWNhbCBpZGVhIGZvciBhIGx5cmljYWwgcHJvZmVzc2lvbmlzdCE='),b64_to_raw('RnJpZGF5IHRoZSB0aGlydGVlbnRoLCB3YWxraW5nIGRvd24gRWxtIFN0cmVldCAvIFlvdSBjb21lIGluIG15IHJlYWxtIHlhIGdldCBiZWF0IQ=='),b64_to_raw('VGhpcyBpcyBvZmYgbGltaXRzLCBzbyB5b3VyIHZpc2lvbnMgYXJlIGJsdXJyeSAvIEFsbCB5YSBzZWUgaXMgdGhlIG1ldGVycyBhdCBhIHZvbHVtZQ=='),b64_to_raw('VGVycm9yIGluIHRoZSBzdHlsZXMsIG5ldmVyIGVycm9yLWZpbGVzIC8gSW5kZWVkIEknbSBrbm93bi15b3VyIGV4aWxlZCE='),b64_to_raw('Rm9yIHRob3NlIHRoYXQgb3Bwb3NlIHRvIGJlIGxldmVsIG9yIG5leHQgdG8gdGhpcyAvIEkgYWluJ3QgYSBkZXZpbCBhbmQgdGhpcyBhaW4ndCB0aGUgRXhvcmNpc3Qh'),b64_to_raw('V29yc2UgdGhhbiBhIG5pZ2h0bWFyZSwgeW91IGRvbid0IGhhdmUgdG8gc2xlZXAgYSB3aW5rIC8gVGhlIHBhaW4ncyBhIG1pZ3JhaW5lIGV2ZXJ5IHRpbWUgeWEgdGhpbms='),b64_to_raw('Rmxhc2hiYWNrcyBpbnRlcmZlcmUsIHlhIHN0YXJ0IHRvIGhlYXI6IC8gVGhlIFItQS1LLUktTSBpbiB5b3VyIGVhcjs='),b64_to_raw('VGhlbiB0aGUgYmVhdCBpcyBoeXN0ZXJpY2FsIC8gVGhhdCBtYWtlcyBFcmljIGdvIGdldCBhIGF4IGFuZCBjaG9wcyB0aGUgd2Fjaw=='),b64_to_raw('U29vbiB0aGUgbHlyaWNhbCBmb3JtYXQgaXMgc3VwZXJpb3IgLyBGYWNlcyBvZiBkZWF0aCByZW1haW4='),b64_to_raw('TUMncyBkZWNheWluZywgY3V6IHRoZXkgbmV2ZXIgc3RheWVkIC8gVGhlIHNjZW5lIG9mIGEgY3JpbWUgZXZlcnkgbmlnaHQgYXQgdGhlIHNob3c='),b64_to_raw('VGhlIGZpZW5kIG9mIGEgcmh5bWUgb24gdGhlIG1pYyB0aGF0IHlvdSBrbm93IC8gSXQncyBvbmx5IG9uZSBjYXBhYmxlLCBicmVha3MtdGhlIHVuYnJlYWthYmxl'),b64_to_raw('TWVsb2RpZXMtdW5tYWthYmxlLCBwYXR0ZXJuLXVuZXNjYXBhYmxlIC8gQSBob3JuIGlmIHdhbnQgdGhlIHN0eWxlIEkgcG9zc2Vz'),b64_to_raw('SSBibGVzcyB0aGUgY2hpbGQsIHRoZSBlYXJ0aCwgdGhlIGdvZHMgYW5kIGJvbWIgdGhlIHJlc3QgLyBGb3IgdGhvc2UgdGhhdCBlbnZ5IGEgTUMgaXQgY2FuIGJl'),b64_to_raw('SGF6YXJkb3VzIHRvIHlvdXIgaGVhbHRoIHNvIGJlIGZyaWVuZGx5IC8gQSBtYXR0ZXIgb2YgbGlmZSBhbmQgZGVhdGgsIGp1c3QgbGlrZSBhIGV0Y2gtYS1za2V0Y2g='),b64_to_raw('U2hha2UgJ3RpbGwgeW91ciBjbGVhciwgbWFrZSBpdCBkaXNhcHBlYXIsIG1ha2UgdGhlIG5leHQgLyBBZnRlciB0aGUgY2VyZW1vbnksIGxldCB0aGUgcmh5bWUgcmVzdCBpbiBwZWFjZQ=='),b64_to_raw('SWYgbm90LCBteSBzb3VsJ2xsIHJlbGVhc2UhIC8gVGhlIHNjZW5lIGlzIHJlY3JlYXRlZCwgcmVpbmNhcm5hdGVkLCB1cGRhdGVkLCBJJ20gZ2xhZCB5b3UgbWFkZSBpdA=='),b64_to_raw('Q3V6IHlvdXIgYWJvdXQgdG8gc2VlIGEgZGlzYXN0cm91cyBzaWdodCAvIEEgcGVyZm9ybWFuY2UgbmV2ZXIgYWdhaW4gcGVyZm9ybWVkIG9uIGEgbWljOg=='),b64_to_raw('THlyaWNzIG9mIGZ1cnkhIEEgZmVhcmlmaWVkIGZyZWVzdHlsZSEgLyBUaGUgIlIiIGlzIGluIHRoZSBob3VzZS10b28gbXVjaCB0ZW5zaW9uIQ=='),b64_to_raw('TWFrZSBzdXJlIHRoZSBzeXN0ZW0ncyBsb3VkIHdoZW4gSSBtZW50aW9uIC8gUGhyYXNlcyB0aGF0J3MgZmVhcnNvbWU='),b64_to_raw('WW91IHdhbnQgdG8gaGVhciBzb21lIHNvdW5kcyB0aGF0IG5vdCBvbmx5IHBvdW5kcyBidXQgcGxlYXNlIHlvdXIgZWFyZHJ1bXM7IC8gSSBzaXQgYmFjayBhbmQgb2JzZXJ2ZSB0aGUgd2hvbGUgc2NlbmVyeQ=='),b64_to_raw('VGhlbiBub25jaGFsYW50bHkgdGVsbCB5b3Ugd2hhdCBpdCBtZWFuIHRvIG1lIC8gU3RyaWN0bHkgYnVzaW5lc3MgSSdtIHF1aWNrbHkgaW4gdGhpcyBtb29k'),b64_to_raw('QW5kIEkgZG9uJ3QgY2FyZSBpZiB0aGUgd2hvbGUgY3Jvd2QncyBhIHdpdG5lc3MhIC8gSSdtIGEgdGVhciB5b3UgYXBhcnQgYnV0IEknbSBhIHNwYXJlIHlvdSBhIGhlYXJ0'),b64_to_raw('UHJvZ3JhbSBpbnRvIHRoZSBzcGVlZCBvZiB0aGUgcmh5bWUsIHByZXBhcmUgdG8gc3RhcnQgLyBSaHl0aG0ncyBvdXQgb2YgdGhlIHJhZGl1cywgaW5zYW5lIGFzIHRoZSBjcmF6aWVzdA=='),b64_to_raw('TXVzaWNhbCBtYWRuZXNzIE1DIGV2ZXIgbWFkZSwgc2VlIGl0J3MgLyBOb3cgYW4gZW1lcmdlbmN5LCBvcGVuLWhlYXJ0IHN1cmdlcnk='),b64_to_raw('T3BlbiB5b3VyIG1pbmQsIHlvdSB3aWxsIGZpbmQgZXZlcnkgd29yZCdsbCBiZSAvIEZ1cmllciB0aGFuIGV2ZXIsIEkgcmVtYWluIHRoZSBmdXJ0dXJl'),b64_to_raw('QmF0dGxlJ3MgdGVtcHRpbmcuLi53aGF0ZXZlciBzdWl0cyB5YSEgLyBGb3Igd29yZHMgdGhlIHNlbnRlbmNlLCB0aGVyZSdzIG5vIHJlc2VtYmxhbmNl'),b64_to_raw('WW91IHRoaW5rIHlvdSdyZSBydWZmZXIsIHRoZW4gc3VmZmVyIHRoZSBjb25zZXF1ZW5jZXMhIC8gSSdtIG5ldmVyIGR5aW5nLXRlcnJpZnlpbmcgcmVzdWx0cw=='),b64_to_raw('SSB3YWtlIHlhIHdpdGggaHVuZHJlZHMgb2YgdGhvdXNhbmRzIG9mIHZvbHRzIC8gTWljLXRvLW1vdXRoIHJlc3VzY2l0YXRpb24sIHJoeXRobSB3aXRoIHJhZGlhdGlvbg=='),b64_to_raw('Tm92b2NhaW4gZWFzZSB0aGUgcGFpbiBpdCBtaWdodCBzYXZlIGhpbSAvIElmIG5vdCwgRXJpYyBCLidzIHRoZSBqdWRnZSwgdGhlIGNyb3dkJ3MgdGhlIGp1cnk='),b64_to_raw('WW8gUmFraW0sIHdoYXQncyB1cD8gLyBZbywgSSdtIGRvaW5nIHRoZSBrbm93bGVkZ2UsIEUuLCBtYW4gSSdtIHRyeWluZyB0byBnZXQgcGFpZCBpbiBmdWxs'),b64_to_raw('V2VsbCwgY2hlY2sgdGhpcyBvdXQsIHNpbmNlIE5vcmJ5IFdhbHRlcnMgaXMgb3VyIGFnZW5jeSwgcmlnaHQ/IC8gVHJ1ZQ=='),b64_to_raw('S2FyYSBMZXdpcyBpcyBvdXIgYWdlbnQsIHdvcmQgdXAgLyBaYWtpYSBhbmQgNHRoIGFuZCBCcm9hZHdheSBpcyBvdXIgcmVjb3JkIGNvbXBhbnksIGluZGVlZA=='),b64_to_raw('T2theSwgc28gd2hvIHdlIHJvbGxpbicgd2l0aCB0aGVuPyBXZSByb2xsaW4nIHdpdGggUnVzaCAvIE9mIFJ1c2h0b3duIE1hbmFnZW1lbnQ='),b64_to_raw('Q2hlY2sgdGhpcyBvdXQsIHNpbmNlIHdlIHRhbGtpbmcgb3ZlciAvIFRoaXMgZGVmIGJlYXQgcmlnaHQgaGVyZSB0aGF0IEkgcHV0IHRvZ2V0aGVy'),b64_to_raw('SSB3YW5uYSBoZWFyIHNvbWUgb2YgdGhlbSBkZWYgcmh5bWVzLCB5b3Uga25vdyB3aGF0IEknbSBzYXlpbic/IC8gQW5kIHRvZ2V0aGVyLCB3ZSBjYW4gZ2V0IHBhaWQgaW4gZnVsbA=='),b64_to_raw('VGhpbmtpbicgb2YgYSBtYXN0ZXIgcGxhbiAvICdDdXogYWluJ3QgbnV0aGluJyBidXQgc3dlYXQgaW5zaWRlIG15IGhhbmQ='),b64_to_raw('U28gSSBkaWcgaW50byBteSBwb2NrZXQsIGFsbCBteSBtb25leSBpcyBzcGVudCAvIFNvIEkgZGlnIGRlZXBlciBidXQgc3RpbGwgY29taW4nIHVwIHdpdGggbGludA=='),b64_to_raw('U28gSSBzdGFydCBteSBtaXNzaW9uLCBsZWF2ZSBteSByZXNpZGVuY2UgLyBUaGlua2luJyBob3cgY291bGQgSSBnZXQgc29tZSBkZWFkIHByZXNpZGVudHM='),b64_to_raw('SSBuZWVkIG1vbmV5LCBJIHVzZWQgdG8gYmUgYSBzdGljay11cCBraWQgLyBTbyBJIHRoaW5rIG9mIGFsbCB0aGUgZGV2aW91cyB0aGluZ3MgSSBkaWQ='),b64_to_raw('SSB1c2VkIHRvIHJvbGwgdXAsIHRoaXMgaXMgYSBob2xkIHVwLCBhaW4ndCBudXRoaW4nIGZ1bm55IC8gU3RvcCBzbWlsaW5nLCBiZSBzdGlsbCwgZG9uJ3QgbnV0aGluJyBtb3ZlIGJ1dCB0aGUgbW9uZXk='),b64_to_raw('QnV0IG5vdyBJIGxlYXJuZWQgdG8gZWFybiAnY3V6IEknbSByaWdodGVvdXMgLyBJIGZlZWwgZ3JlYXQsIHNvIG1heWJlIEkgbWlnaHQganVzdA=='),b64_to_raw('U2VhcmNoIGZvciBhIG5pbmUgdG8gZml2ZSwgaWYgSSBzdHJpdmUgLyBUaGVuIG1heWJlIEknbGwgc3RheSBhbGl2ZQ=='),b64_to_raw('U28gSSB3YWxrIHVwIHRoZSBzdHJlZXQgd2hpc3RsaW4nIHRoaXMgLyBGZWVsaW4nIG91dCBvZiBwbGFjZSAnY3V6LCBtYW4sIGRvIEkgbWlzcw=='),b64_to_raw('QSBwZW4gYW5kIGEgcGFwZXIsIGEgc3RlcmVvLCBhIHRhcGUgb2YgLyBNZSBhbmQgRXJpYyBCLCBhbmQgYSBuaWNlIGJpZyBwbGF0ZSBvZg=='),b64_to_raw('RmlzaCwgd2hpY2ggaXMgbXkgZmF2b3JpdGUgZGlzaCAvIEJ1dCB3aXRob3V0IG5vIG1vbmV5IGl0J3Mgc3RpbGwgYSB3aXNo'),b64_to_raw('J0N1eiBJIGRvbid0IGxpa2UgdG8gZHJlYW0gYWJvdXQgZ2V0dGluJyBwYWlkIC8gU28gSSBkaWcgaW50byB0aGUgYm9va3Mgb2YgdGhlIHJoeW1lcyB0aGF0IEkgbWFkZQ=='),b64_to_raw('U28gbm93IHRvIHRlc3QgdG8gc2VlIGlmIEkgZ290IHB1bGwgLyBIaXQgdGhlIHN0dWRpbywgJ2N1eiBJJ20gcGFpZCBpbiBmdWxs'),b64_to_raw('UmFraW0sIGNoZWNrIHRoaXMgb3V0LCB5byAvIFlvdSBnbyB0byB5b3VyIGdpcmwgaG91c2UgYW5kIEknbGwgZ28gdG8gbWluZQ=='),b64_to_raw('J0NhdXNlIG15IGdpcmwgaXMgZGVmaW5pdGVseSBtYWQgLyAnQ2F1c2UgaXQgdG9vayB1cyB0b28gbG9uZyB0byBkbyB0aGlzIGFsYnVt'),b64_to_raw('WW8sIEkgaGVhciB3aGF0IHlvdSdyZSBzYXlpbmcgLyBTbyBsZXQncyBqdXN0IHB1bXAgdGhlIG11c2ljIHVw'),b64_to_raw('QW5kIGNvdW50IG91ciBtb25leSAvIFlvLCB3ZWxsIGNoZWNrIHRoaXMgb3V0LCB5byBFbGk='),b64_to_raw('VHVybiBkb3duIHRoZSBiYXNzIGRvd24gLyBBbmQgbGV0IHRoZSBiZWF0IGp1c3Qga2VlcCBvbiByb2NraW4n'),b64_to_raw('QW5kIHdlIG91dHRhIGhlcmUgLyBZbywgd2hhdCBoYXBwZW5lZCB0byBwZWFjZT8gLyBQZWFjZQ=='),]
@@ -98,8 +105,114 @@ def challenge20():
 
     keystream = [single_char_xor_bruteforce(transposed_cpt) for transposed_cpt in transpose_blocks(cpts)]
 
-    return [fixed_xor(cpt, keystream[:len(cpt)]) for cpt in cpts]
+    return [xor(cpt, keystream[:len(cpt)]) for cpt in cpts]
+
+def challenge21():
+    # Implement the MT19937 Mersenne Twister RNG
+
+    return next(prng(123456789012, 1000))
+
+def challenge22():
+    # Crack an MT19937 seed
+
+    def time_seed_prng_oracle(sleep_modifier=1):
+        # Easy seed to crack, as it just uses unix timestamp as seed, so 1 possible value per second elapsed
+        time.sleep(random.randint(0,0))
+        gen = prng(int(time.time() * 256))  # This is a bit harder to crack than plain timestamp, as it include fractals (https://svn.python.org/projects/python/tags/r32/Lib/random.py) 
+        time.sleep(random.randint(0,0))
+        return next(gen)
+    
+    start_time = int(time.time()*256)
+    token = time_seed_prng_oracle()
+    end_time = int(time.time()*256)
+
+    cracked_seed = bruteforce_prng_seed(prng, token, start_time, end_time)
+    return True if cracked_seed else False
+
+def challenge23():
+    # Clone an MT19937 RNG from its output
+
+    def verify_untemper_has_worked(seed, untempered):
+        (w, n, m, r) = (32, 624, 397, 31)
+        f = 1812433253
+        index = n
+        MT = [0] * n
+        MT[0] = seed
+
+        for i in range(1,n):
+            MT[i] = (f * (MT[i-1] ^ (MT[i-1] >> (w-2))) + i) & 0xFFFFFFFF # 32 bits mask
+        if index >= n:
+            # twist - generate the next n values from the series x_i 
+            for i in range(n):
+                x = (MT[i] & upper_mask) + (MT[(i+1) % n] & lower_mask)
+                xA = x >> 1
+                if (x % 2) != 0:
+                    xA = xA ^ a
+                MT[i] = MT[(i + m) % n] ^ xA
+            index = 0
+
+        print(MT[0], untempered[0])
+        assert(MT == untempered)
+
+    def untemper_prng(mt):
+        (u, d) = (11, 0xFFFFFFFF)
+        (s, b) = (7, 0x9D2C5680)
+        (t, c) = (15, 0xEFC60000)
+        l = 18
+        for i in range(len(mt)):
+            y = mt[i]
+            y = y ^ (((y ^ ((y >> l) & d)) >> l) & d)
+            y = y ^ (((y ^ ((y << t) & c)) << t) & c)
+            y = y ^ (((y ^ ((y << s) & b)) << s) & b)
+            y = y ^ (((y ^ ((y >> u) & d)) >> u) & d)
+            mt[i] = y
+        return mt
+
+    mt = prng(123123123123)
+    next(mt)
+    next(mt)
+    next(mt)
+    next(mt)
+    u = next(mt)
+    untemper_prng([u])[0]
+    return False  # :(
+
+def challenge24():
+    # Create the MT19937 stream cipher and break it
+
+    key = Random.new().read(2)
+    prepend = Random.new().read(random.randint(1, 20))
+    
+    def oracle(msg):
+        return  prng_stream_encrypt(key, prepend + ascii_to_raw(msg))
+
+    def bruteforce_oracle():
+        cpt1, cpt2 = oracle('A'*16), oracle('B'*16)
+        
+        index_of_diffs = [i for i in range(len(cpt2)) if cpt1[i] != cpt2[i]]  # elements which we can get the keystream for
+
+        prng_keystream = [ord('A') ^ cpt1[i] for i in index_of_diffs]
+
+        discovered_key = bruteforce_prng_seed(prng, prng_keystream, initial_prng_element=index_of_diffs[0], bit_mask=0xFF)
+
+        return "prng seed is {}".format(discovered_key)
+
+    def password_reset_token():
+        seed = int(time.time() * 1000)
+        gen = prng(seed)  # multiplied to increase difficulty
+        return  raw_to_hex([next(gen)&0xFF for _ in range(64)])
+
+    def crack_password_reset():
+        start_time = int(time.time()*1000)
+        token = [i for i in hex_to_raw(password_reset_token())]
+        end_time = int(time.time()*1000)
+
+        cracked_seed =  bruteforce_prng_seed(prng, token, start_time, end_time, bit_mask=0xFF)
+        return True if cracked_seed else False
+    
+    return False if crack_password_reset() is None else True
+    return False if bruteforce_oracle() is None or crack_password_reset() is None else True
 
 if __name__ == '__main__':
-    print(challenge19())
+    print(challenge23())
 
