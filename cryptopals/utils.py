@@ -2,6 +2,7 @@ import binascii
 import itertools
 import hashlib
 from math import ceil
+from os import urandom
 import random
 import string
 import struct
@@ -10,8 +11,8 @@ import urllib.request
 
 from Crypto import Random
 from Crypto.Cipher import AES
-from Crypto.Hash import HMAC, SHA
 from Crypto.Util import Counter
+from Crypto.Util.number import getPrime as primegen
 
 def raw_to_b64(raw):
     return binascii.b2a_base64(raw).rstrip()
@@ -20,7 +21,8 @@ def b64_to_raw(b64_string):
     return binascii.a2b_base64(b64_string)
 
 def raw_to_hex(raw):
-    return ''.join(['{:02x}'.format(b) for b in raw])
+    return binascii.hexlify(bytes(raw)).decode('utf-8')
+    # return ''.join(['{:02x}'.format(b) for b in raw])
 
 def raw_to_bin(raw):
     return ''.join(['{:b}'.format(b) for b in raw])
@@ -34,9 +36,9 @@ def hex_to_raw(hex_string):
 def hex_to_decimal(hex_string):
     return int(hex_string, 16)
 
-def big_int_to_raw(big_int):
+def int_to_raw(integer):
     # return struct.pack(">I", big_int)  # left for reference
-    return big_int.to_bytes(16, byteorder='big')
+    return integer.to_bytes(integer.bit_length()//8+1, byteorder='big')
 
 def raw_to_int(raw):
     return int.from_bytes(raw, byteorder='big')
@@ -100,7 +102,7 @@ def transpose_blocks(blocks):
     # transpose_blocks([[1,2,3],[1,2,3],[1,2,3]]) == [[1,1,1],[2,2,2],[3,3,3]]
     return [block for block in itertools.zip_longest(*blocks, fillvalue=0)]
 
-def cpt_bit_flipping(cpt, original_str, target_str, offset=0):
+def targeted_bit_flipping(cpt, original_str, target_str, offset=0):
     # generator which bit flips a ciphertext attempting to go from
     # original string to target string e.g. 'AAAAAAAAAAA' to ';admin=True'
     # i is starting offset within cpt which will be flipped
@@ -139,12 +141,6 @@ def detect_cipher_type(oracle):
         cpt1 = cpt2
         size +=1
     return 'hash?'
-
-def test_cipher_detection():
-    for _ in range(1000):
-        cipher = RandomCipher()
-        assert(detect_cipher_type(cipher.encrypt) == cipher.cipher_type)
-    return True
 
 class RandomCipher(object):
     def __init__(self):
@@ -309,7 +305,7 @@ def prng(seed, initial_element=0):
 
 def bruteforce_prng_seed(prng, random_values, start=0, stop=0xFFFF,
                          initial_prng_element=0, bit_mask=0xFFFFFFFF):
-    
+
     random_values =  random_values if isinstance(random_values, list) else [random_values]  # in case random_values is a single element
     key_attempt = start
 
@@ -331,9 +327,12 @@ def bruteforce_prng_seed(prng, random_values, start=0, stop=0xFFFF,
 ####################################
 
 def _left_rotate(n, b):
-    """Left rotate a 32-bit integer n by b bits."""
-    # return ((n << b) | (n >> (32 - b))) & 0xffffffff
+    # Left rotate a 32-bit integer n by b bits
     return ((n << b) | ((n & 0xffffffff) >> (32 - b))) & 0xffffffff
+
+def _right_rotate(n, b):
+    # Right rotate a 32-bit integer n by n bits
+    return ((n >> b) | (n << (32 - b))) & 0xffffffff
 
 def md_padding(msg_length, endianess='big'):
     # Merkle–Damgård padding
@@ -347,7 +346,7 @@ def md_padding(msg_length, endianess='big'):
         (msg_length * 8).to_bytes(8, byteorder=endianess)
     ])
 
-def sha1(msg, state=(0x67452301,0xEFCDAB89,0x98BADCFE,0x10325476,0xC3D2E1F0), fake_len=0, output_as_raw=False):
+def sha1(msg, state=(0x67452301,0xEFCDAB89,0x98BADCFE,0x10325476,0xC3D2E1F0), fake_len=0, raw=False):
     # source https://github.com/ajalt/python-sha1/blob/master/sha1.py
 
     def _process_chunk(chunk, h0, h1, h2, h3, h4):
@@ -356,9 +355,7 @@ def sha1(msg, state=(0x67452301,0xEFCDAB89,0x98BADCFE,0x10325476,0xC3D2E1F0), fa
 
         w = [0] * 80
 
-        # Break chunk into sixteen 4-byte big-endian words w[i]
-        for i in range(16):
-            w[i] = int.from_bytes(chunk[i*4:i*4 + 4], byteorder='big')
+        w[:16] = struct.unpack('!16L', chunk)
 
         # Extend the sixteen 4-byte words into eighty 4-byte words
         for i in range(16, 80):
@@ -394,16 +391,83 @@ def sha1(msg, state=(0x67452301,0xEFCDAB89,0x98BADCFE,0x10325476,0xC3D2E1F0), fa
 
         return h0, h1, h2, h3, h4
 
+    msg = ascii_to_raw(msg)
+    msg += md_padding(fake_len or len(msg))
+
+    for chunk in break_raw_into_chunks(msg, 64):
+        state = _process_chunk(chunk, *state)
+    
+    output = struct.pack('>5I', *state)
+    return output if raw else raw_to_hex(output)
+
+def sha256(msg, state=(0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19), fake_len=0, raw=False):
+
+    _k = [
+       0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+       0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+       0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+       0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+       0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+       0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+       0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+       0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+   ]
+
+    def _process_chunk(chunk, h0, h1, h2, h3, h4, h5, h6, h7):
+        w = [0]*64
+
+        w[:16] = struct.unpack('>16L', chunk)
+
+        for i in range(16, 64):
+            s0 = _right_rotate(w[i-15], 7) ^ _right_rotate(w[i-15], 18) ^ (w[i-15] >> 3)
+            s1 = _right_rotate(w[i-2], 17) ^ _right_rotate(w[i-2], 19) ^ (w[i-2] >> 10)
+            w[i] = (w[i-16] + s0 + w[i-7] + s1) & 0xffffffff
+        
+        a,b,c,d,e,f,g,h = h0,h1,h2,h3,h4,h5,h6,h7
+
+        for i in range(64):
+            s0 = _right_rotate(a, 2) ^ _right_rotate(a, 13) ^ _right_rotate(a, 22)
+            maj = (a & b) ^ (a & c) ^ (b & c)
+            t2 = s0 + maj
+            s1 = _right_rotate(e, 6) ^ _right_rotate(e, 11) ^ _right_rotate(e, 25)
+            ch = (e & f) ^ ((~e) & g)
+            t1 = h + s1 + ch + _k[i] + w[i]
+            
+            h = g
+            g = f
+            f = e
+            e = (d + t1) & 0xffffffff
+            d = c
+            c = b
+            b = a
+            a = (t1 + t2) & 0xffffffff
+        
+        h0 = (h0 + a) & 0xffffffff
+        h1 = (h1 + b) & 0xffffffff
+        h2 = (h2 + c) & 0xffffffff
+        h3 = (h3 + d) & 0xffffffff
+        h4 = (h4 + e) & 0xffffffff
+        h5 = (h5 + f) & 0xffffffff
+        h6 = (h6 + g) & 0xffffffff
+        h7 = (h7 + h) & 0xffffffff
+        return h0, h1, h2, h3, h4, h5, h6, h7
+
+    msg = ascii_to_raw(msg)
     msg += md_padding(fake_len or len(msg))
 
     for chunk in break_raw_into_chunks(msg, 64):
         state = _process_chunk(chunk, *state)
 
-    output = b''.join(h.to_bytes(4, byteorder='big') for h in state)
-    return output if output_as_raw else raw_to_hex(output)
+    output = struct.pack('>8I', *state)
+    return output if raw else raw_to_hex(output)
 
+def sha224(msg, state=(0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939, 0xffc00b31, 0x68581511, 0x64f98fa7, 0xbefa4fa4), fake_len=0, raw=False):
+    # Reuses sha256 implementation
+    state_from_sha256 = struct.unpack('>8I', sha256(msg, state, fake_len, raw=True))
+    output = struct.pack('>7I', *state_from_sha256[:-1])
+    return output if raw else raw_to_hex(output)
 
-def md4(msg, state=(0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476), fake_len=0, output_as_raw=False):
+def md4(msg, state=(0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476), fake_len=0, raw=False):
     # source http://www.acooke.org/cute/PurePython0.html
     def f(x, y, z): return x & y | ~x & z
     def g(x, y, z): return x & y | x & z | y & z
@@ -414,7 +478,8 @@ def md4(msg, state=(0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476), fake_len=0,
     
     def _process_chunk(x, h0, h1, h2, h3):
         a, b, c, d = h0, h1, h2, h3
-        x = [int.from_bytes(i, byteorder='little') for i in break_raw_into_chunks(x,4)]
+        
+        x = struct.unpack('<16L', x)
 
         a = f1(a,b,c,d, 0, 3, x)
         d = f1(d,a,b,c, 1, 7, x)
@@ -469,13 +534,14 @@ def md4(msg, state=(0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476), fake_len=0,
 
         return [(h0 + a) & 0xffffffff, (h1 + b) & 0xffffffff, (h2 + c) & 0xffffffff, (h3 + d) & 0xffffffff]
 
+    msg = ascii_to_raw(msg)
     msg += md_padding(fake_len or len(msg), 'little')
 
     for chunk in break_raw_into_chunks(msg, 64):
         state = _process_chunk(chunk, *state)
-    
-    output = b''.join(h.to_bytes(4, byteorder='little') for h in state)
-    return output if output_as_raw else raw_to_hex(output)
+
+    output = struct.pack('<4I', *state)
+    return output if raw else raw_to_hex(output)
 
 def length_extension(hash_function, original_tag, original_msg, append_msg, endianness=('big','little'), max_key_len=64):
     if isinstance(endianness, str):
@@ -493,21 +559,21 @@ def length_extension(hash_function, original_tag, original_msg, append_msg, endi
 
     return msg_tag_pairs
 
-def hmac(key, msg, hash_function=sha1, output_as_raw=False):
+def hmac(key, msg, hash_function=sha1, raw=False):
     if (len(key) > 64):
-        key = hash_function(key, output_as_raw=True)
+        key = hash_function(key, raw=True)
     if (len(key) < 64):
         key = key + b'\x00' * (64 - len(key))
    
     o_key_pad = xor(b'\x5c' * 64, key)
     i_key_pad = xor(b'\x36' * 64, key)
 
-    output = hash_function(o_key_pad + hash_function(i_key_pad + msg, output_as_raw=True), output_as_raw=True)
-    return output if output_as_raw else raw_to_hex(output)
+    output = hash_function(o_key_pad + hash_function(i_key_pad + msg, raw=True), raw=True)
+    return output if raw else raw_to_hex(output)
 
 def hmac_timing_leak_bruteforce(msg, hash_function=sha1, url='http://localhost:5000?msg={}&tag={}'):
 
-    hashlen = len(hash_function(b'test',output_as_raw=True))
+    hashlen = len(hash_function(b'test',raw=True))
     payload = [0] * hashlen
 
     for i in range(len(payload)):
@@ -542,3 +608,158 @@ def hmac_timing_leak_bruteforce(msg, hash_function=sha1, url='http://localhost:5
     tag = raw_to_hex(payload)
     assert(urllib.request.urlopen(url.format(msg, tag)).getcode() == 200)
     return tag
+
+####################################
+#               Math               #
+####################################
+
+def modexp(base, exponent, modulus):   
+    if modulus == 1:
+        return 0
+    result = 1
+    base = base % modulus
+    while exponent > 0:
+        if (exponent % 2 == 1):
+            result = (result * base) % modulus
+        exponent = exponent >> 1
+        base = (base * base) % modulus
+    return result
+
+def egcd(b, n):
+    x0, x1, y0, y1 = 1, 0, 0, 1
+    while n != 0:
+        q, b, n = b // n, n, b % n
+        x0, x1 = x1, x0 - q * x1
+        y0, y1 = y1, y0 - q * y1
+    return  b, x0, y0
+
+def modinv(a, m):
+    g, x, y = egcd(a, m)
+    if g != 1:
+        raise Exception('modular inverse does not exist')
+    else:
+        return x % m
+
+def find_cube_root(n):
+    lo = 0
+    hi = n
+    while lo < hi:
+        mid = (lo+hi)//2
+        if mid**3 < n:
+            lo = mid+1
+        else:
+            hi = mid
+    return lo
+
+####################################
+#        Public key crypto         #
+####################################
+
+class DH():
+    # Diffie Hellman
+    # Refer to https://datatracker.ietf.org/doc/rfc3526/?include_text=1 for constants
+    default_p = 2410312426921032588552076022197566074856950548502459942654116941958108831682612228890093858261341614673227141477904012196503648957050582631942730706805009223062734745341073406696246014589361659774041027169249453200378729434170325843778659198143763193776859869524088940195577346119843545301547043747207749969763750084308926339295559968882457872412993810129130294592999947926365264059284647209730384947211681434464714438488520940127459844288859336526896320919633919  # raw_to_int(hex_to_raw('ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca237327ffffffffffffffff'))
+    default_g = 2
+
+    def __init__(self, p=default_p, g=default_g, peer_public_key=None):
+        self.p = p
+        self.g = g
+        self.private_key = raw_to_int(urandom(128)) % p
+        self.public_key = modexp(g, self.private_key, p)
+        if peer_public_key:
+            self.key_exchange(peer_public_key)
+
+    def key_exchange(self, peer_public_key):
+        self.shared_secret = int_to_raw(modexp(peer_public_key, self.private_key, self.p))
+        self.shared_key = sha1(self.shared_secret, raw=True)[:16]
+
+class SRPServer():
+    # Secure Remote Password (SRP) Server implementation
+
+    def __init__(self, g=2, k=3, N=2410312426921032588552076022197566074856950548502459942654116941958108831682612228890093858261341614673227141477904012196503648957050582631942730706805009223062734745341073406696246014589361659774041027169249453200378729434170325843778659198143763193776859869524088940195577346119843545301547043747207749969763750084308926339295559968882457872412993810129130294592999947926365264059284647209730384947211681434464714438488520940127459844288859336526896320919633919 ):
+        self.N = N
+        self.g = g
+        self.k = k
+        self.users = {}
+        self.create_user('luis@teix.co', 'password')
+        self.create_user('test@gmail.com', 'secret')
+
+    def create_user(self, email, password):
+        password = ascii_to_raw(password)
+        salt = urandom(4)
+        x = raw_to_int(sha256(salt + password, raw=True))
+        v = modexp(self.g, x, self.N)
+        self.users[email] = {'salt': salt, 'v': v}
+
+    def key_exchange(self, email, client_public_key):
+        v, salt = self.users[email]['v'], self.users[email]['salt']
+        this_private_key = raw_to_int(urandom(16)) % self.N
+        this_public_key = self.k * v + modexp(self.g, this_private_key, self.N)
+        u = raw_to_int(sha256(int_to_raw(client_public_key + this_public_key), raw=True))
+        shared_secret = modexp((client_public_key * modexp(v, u, self.N)), this_private_key, self.N)
+        shared_key = sha256(int_to_raw(shared_secret), raw=True)
+        self.users[email]['token'] = hmac(shared_key, salt, sha256)
+        return salt, this_public_key
+
+    def authenticate(self, email, token):
+        return self.users[email]['token'] == token
+
+class SRPClient():
+    # Secure Remote Password (SRP) Client implementation
+
+    def __init__(self, email, password, g=2, k=3, N=2410312426921032588552076022197566074856950548502459942654116941958108831682612228890093858261341614673227141477904012196503648957050582631942730706805009223062734745341073406696246014589361659774041027169249453200378729434170325843778659198143763193776859869524088940195577346119843545301547043747207749969763750084308926339295559968882457872412993810129130294592999947926365264059284647209730384947211681434464714438488520940127459844288859336526896320919633919 ):
+        self.N = N
+        self.g = g
+        self.k = k
+        self.email = email
+        self.password = ascii_to_raw(password)
+        self.private_key = raw_to_int(urandom(16)) % self.N
+        self.public_key = modexp(self.g, self.private_key, self.N)
+
+    def key_exchange(self, salt, server_public_key):
+        u = raw_to_int(sha256(int_to_raw(self.public_key + server_public_key), raw=True))
+        x = raw_to_int(sha256(salt + self.password, raw=True))
+        shared_secret = modexp((server_public_key - self.k * modexp(self.g,x,self.N)), (self.private_key + u * x), self.N)
+        shared_key = sha256(int_to_raw(shared_secret), raw=True)
+        self.token = hmac(shared_key, salt, sha256)
+
+class SimplifiedSRPServer(SRPServer):
+    def key_exchange(self, email, client_public_key):
+        v, salt, u = self.users[email]['v'], self.users[email]['salt'], raw_to_int(urandom(16))
+        this_private_key = raw_to_int(urandom(16)) % self.N
+        this_public_key = modexp(self.g, this_private_key, self.N)
+        shared_secret = modexp(client_public_key * modexp(v, u, self.N), this_private_key, self.N)
+        shared_key = sha256(int_to_raw(shared_secret), raw=True)
+        self.users[email]['token'] = hmac(shared_key, salt, sha256)
+        return salt, this_public_key, u
+
+class SimplifiedSRPClient(SRPClient):
+    def key_exchange(self, salt, server_public_key, u):
+        x = raw_to_int(sha256(salt + self.password, raw=True))
+        shared_secret = modexp(server_public_key, self.private_key + (u * x), self.N)
+        shared_key = sha256(int_to_raw(shared_secret), raw=True)
+        self.token = hmac(shared_key, salt, sha256)
+
+class RSA():
+    def __init__(self):
+        e = 3
+        while True:
+            p = primegen(1024)
+            q = primegen(1024)
+            n = p*q
+            try:
+                d = modinv(e, (p-1)*(q-1))
+                break
+            except Exception:
+                pass
+        self.public_key = e
+        self.private_key = d
+        self.n = n
+
+def rsaencrypt(msg, e, n):
+    if not isinstance(msg, int):
+        msg = raw_to_int(ascii_to_raw(msg))
+    return modexp(msg, e, n)
+
+def rsadecrypt(cpt, d, n):
+    return int_to_raw(modexp(cpt, d, n))

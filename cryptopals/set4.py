@@ -40,7 +40,7 @@ def challenge26():
         return False
 
     cpt = oracle('AAAAAAAAAAAA')
-    gen =  cpt_bit_flipping(cpt, 'AAAAAAAAAAAA', ';admin=true;')
+    gen =  targeted_bit_flipping(cpt, 'AAAAAAAAAAAA', ';admin=true;')
     while True:
         flipped = next(gen)
         if check_if_admin(flipped):
@@ -76,9 +76,6 @@ def challenge27():
 
 def challenge28():
     # Implement a SHA-1 keyed MAC
-
-    # checking my sha1 implementation against hashlib's
-    assert(len([1 for i in range(200) if hashlib.sha1(b'a'*i).hexdigest() != sha1(b'a'*i)]) == 0)
 
     key = Random.new().read(16)
     
@@ -117,9 +114,6 @@ def challenge29():
 def challenge30():
     # Break an MD4 keyed MAC using length extension
 
-    # checking my md4 implementation against hashlib's
-    assert(len([1 for i in range(200) if hashlib.new('md4', b'a'*i).hexdigest() != md4(b'a'*i)]) == 0)
-
     key = Random.new().read(random.randint(4,32))
     original_msg = b"comment1=cooking%20MCs;userdata=foo;comment2=%20like%20a%20pound%20of%20bacon"
     original_tag = md4(key + original_msg)
@@ -138,9 +132,6 @@ def challenge30():
 
 def challenge31_and_32(msg='thisisasecretmessage'):
     # Implement and break HMAC-SHA1 with an artificial timing leak
-    
-    # checking my hmac implementation against PyCrypto's
-    assert(len([1 for i in range(70) if hmac(b'a'*i, b'b'*i) != HMAC.new(b'a'*i, b'b'*i, SHA).hexdigest()]) == 0)
     
     import threading
     threading.Thread(target=challenge31_and_32_server, name="webserver", daemon=True).start()
@@ -164,7 +155,7 @@ def challenge31_and_32_server(artificial_delay=0.002, key=Random.new().read(rand
     def main():
         msg = ascii_to_raw(request.args.get('msg'))
         user_supplied_tag = hex_to_raw(request.args.get('tag'))
-        right_tag = hmac(key, msg, output_as_raw=True)
+        right_tag = hmac(key, msg, raw=True)
         for i in range(len(right_tag)):
             if right_tag[i] == user_supplied_tag[i]:
                 time.sleep(artificial_delay)  
@@ -175,7 +166,7 @@ def challenge31_and_32_server(artificial_delay=0.002, key=Random.new().read(rand
     @app.route("/answer")
     def answer():
         msg = ascii_to_raw(request.args.get('msg'))
-        right_tag = hmac(key, msg, output_as_raw=True)
+        right_tag = hmac(key, msg, raw=True)
         return raw_to_hex(right_tag) 
 
     app.run(threaded=True)

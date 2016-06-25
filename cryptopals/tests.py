@@ -41,6 +41,28 @@ assert(challenge28() is True)
 assert(challenge29() is True)
 assert(challenge30() is True)
 
-test_cipher_detection()
+
+from set5 import *
+assert(challenge33() is True)
+assert(challenge34() is True)
+assert(challenge35() is True)
+assert(challenge36() is True)
+assert(challenge37() is True)
+assert(challenge38() is True)
+assert(challenge39() is True)
+assert(challenge40() is True)
+
+
+# Test cipher detection
+for _ in range(1000):
+    cipher = RandomCipher()
+    assert(detect_cipher_type(cipher.encrypt) == cipher.cipher_type)
+
+# Test custom hashing
+assert(len([1 for i in range(200) if hashlib.new('md4', b'a'*i).hexdigest() != md4(b'a'*i)]) == 0)
+assert(len([1 for i in range(200) if hashlib.sha1(b'a'*i).hexdigest() != sha1(b'a'*i)]) == 0)
+assert(len([1 for i in range(200) if hashlib.sha256(b'a'*i).hexdigest() != sha256(b'a'*i)]) == 0)
+assert(len([1 for i in range(200) if hashlib.sha224(b'a'*i).hexdigest() != sha224(b'a'*i)]) == 0)
+assert(len([1 for i in range(70) if hmac(b'a'*i, b'b'*i) != HMAC.new(b'a'*i, b'b'*i, SHA).hexdigest()]) == 0)
 
 print('All good!')

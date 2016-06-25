@@ -171,7 +171,7 @@ def challenge16():
 
     for i in range(len(key)):  # 'BBBBBBBBBBBB' needs to be within a single block, so 'A' padding will be varied until we get it right
         cpt = oracle('A'*i + 'BBBBBBBBBBBB')
-        gen =  cpt_bit_flipping(cpt, 'BBBBBBBBBBBB', ';admin=true;')
+        gen =  targeted_bit_flipping(cpt, 'BBBBBBBBBBBB', ';admin=true;')
         while True:
             try:
                 flipped = next(gen)
