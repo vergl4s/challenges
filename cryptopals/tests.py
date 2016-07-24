@@ -59,10 +59,37 @@ for _ in range(1000):
     assert(detect_cipher_type(cipher.encrypt) == cipher.cipher_type)
 
 # Test custom hashing
-assert(len([1 for i in range(200) if hashlib.new('md4', b'a'*i).hexdigest() != md4(b'a'*i)]) == 0)
-assert(len([1 for i in range(200) if hashlib.sha1(b'a'*i).hexdigest() != sha1(b'a'*i)]) == 0)
-assert(len([1 for i in range(200) if hashlib.sha256(b'a'*i).hexdigest() != sha256(b'a'*i)]) == 0)
-assert(len([1 for i in range(200) if hashlib.sha224(b'a'*i).hexdigest() != sha224(b'a'*i)]) == 0)
+assert(len([1 for i in range(300) if hashlib.new('md4', b'a'*i).hexdigest() != md4(b'a'*i)]) == 0)
+assert(len([1 for i in range(300) if hashlib.md5(b'a'*i).hexdigest() != md5(b'a'*i)]) == 0)
+# assert(len([1 for i in range(200) if hashlib.new('ripemd160', b'a'*i).hexdigest() != ripemd160(b'a'*i)]) == 0)
+assert(len([1 for i in range(300) if hashlib.sha1(b'a'*i).hexdigest() != sha1(b'a'*i)]) == 0)
+assert(len([1 for i in range(300) if hashlib.sha224(b'a'*i).hexdigest() != sha224(b'a'*i)]) == 0)
+assert(len([1 for i in range(300) if hashlib.sha256(b'a'*i).hexdigest() != sha256(b'a'*i)]) == 0)
+assert(len([1 for i in range(300) if hashlib.sha512(b'a'*i).hexdigest() != sha512(b'a'*i)]) == 0)
 assert(len([1 for i in range(70) if hmac(b'a'*i, b'b'*i) != HMAC.new(b'a'*i, b'b'*i, SHA).hexdigest()]) == 0)
+
+# Hash lengths
+assert(len(md4('a'*random.randint(10,100),raw=True))==16)
+assert(len(md5('a'*random.randint(10,100),raw=True))==16)
+# assert(len(ripemd160('a'*random.randint(10,100),raw=True))==16)
+assert(len(sha1('a'*random.randint(10,100),raw=True))==20)
+assert(len(sha224('a'*random.randint(10,100),raw=True))==28)
+assert(len(sha256('a'*random.randint(10,100),raw=True))==32)
+assert(len(sha512('a'*random.randint(10,100),raw=True))==64)
+
+# Test hash type guessing
+for _ in range(100):
+    algo = random.choice(supported_hashes())
+    thishash = algo('A'*random.randint(10,200))
+    assert(algo in guess_hash_type(thishash))
+
+# Test length extension attack
+key = Random.new().read(random.randint(4,150))
+original_msg = b"var1=ahoy;userdata=foo;comment2=there"
+def verify_tag(algo, msg, tag): return True if tag == algo(key + msg) else False
+for algo in [md4, md5, sha1, sha256, sha512]:
+    original_tag = algo(key + original_msg)
+    msg_tag_pairs = length_extension(algo, original_tag, original_msg, b';admin=true', 256)
+    assert(len([1 for msg, tag in msg_tag_pairs if verify_tag(algo, msg, tag)]))
 
 print('All good!')

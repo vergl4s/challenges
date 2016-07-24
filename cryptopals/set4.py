@@ -100,11 +100,9 @@ def challenge29():
     original_tag = sha1(key + original_msg)
 
     def verify_tag(msg, tag):
-        if tag == sha1(key + msg):
-            return True
-        return False
+        return True if tag == sha1(key + msg) else False
 
-    msg_tag_pairs = length_extension(sha1, original_tag, original_msg, b';admin=true', 'big')
+    msg_tag_pairs = length_extension(sha1, original_tag, original_msg, b';admin=true')
 
     for msg, tag in msg_tag_pairs:
         if verify_tag(msg, tag):
@@ -123,7 +121,7 @@ def challenge30():
             return True
         return False
 
-    msg_tag_pairs = length_extension(md4, original_tag, original_msg, b';admin=true', 'little')
+    msg_tag_pairs = length_extension(md4, original_tag, original_msg, b';admin=true')
 
     for msg, tag in msg_tag_pairs:
         if verify_tag(msg, tag):
