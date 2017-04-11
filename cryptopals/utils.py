@@ -22,7 +22,6 @@ def b64_to_raw(b64_string):
 
 def raw_to_hex(raw):
     return binascii.hexlify(bytes(raw)).decode('utf-8')
-    # return ''.join(['{:02x}'.format(b) for b in raw])
 
 def raw_to_bin(raw):
     return ''.join(['{:b}'.format(b) for b in raw])
@@ -403,8 +402,9 @@ def sha1(msg, state=(0x67452301,0xEFCDAB89,0x98BADCFE,0x10325476,0xC3D2E1F0), fa
     msg = ascii_to_raw(msg)
     msg += md_padding(fake_len or len(msg))
 
-    for chunk in break_raw_into_chunks(msg, 64):
-        state = _process_chunk(chunk, *state)
+    while msg:
+        state = _process_chunk(msg[:64], *state)
+        msg = msg[64:]
     
     output = struct.pack('>5I', *state)
     return output if raw else raw_to_hex(output)
@@ -464,8 +464,9 @@ def sha256(msg, state=(0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x
     msg = ascii_to_raw(msg)
     msg += md_padding(fake_len or len(msg))
 
-    for chunk in break_raw_into_chunks(msg, 64):
-        state = _process_chunk(chunk, *state)
+    while msg:
+        state = _process_chunk(msg[:64], *state)
+        msg = msg[64:]
 
     output = struct.pack('>8I', *state)
     return output if raw else raw_to_hex(output)
@@ -538,8 +539,9 @@ def sha512(msg, state=(0x6a09e667f3bcc908, 0xbb67ae8584caa73b, 0x3c6ef372fe94f82
     msg = ascii_to_raw(msg)
     msg += md_padding_sha512(fake_len or len(msg))
 
-    for chunk in break_raw_into_chunks(msg, 128):
-        state = _process_chunk(chunk, *state)
+    while msg:
+        state = _process_chunk(msg[:128], *state)
+        msg = msg[128:]
 
     output = struct.pack('>8Q', *state)
     return output if raw else raw_to_hex(output)
@@ -614,8 +616,9 @@ def md4(msg, state=(0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476), fake_len=0,
     msg = ascii_to_raw(msg)
     msg += md_padding(fake_len or len(msg), '<')
 
-    for chunk in break_raw_into_chunks(msg, 64):
-        state = _process_chunk(chunk, *state)
+    while msg:
+        state = _process_chunk(msg[:64], *state)
+        msg = msg[64:]
 
     output = struct.pack('<4I', *state)
     return output if raw else raw_to_hex(output)
@@ -677,8 +680,9 @@ def md5(msg, state=(0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476), fake_len=0,
     msg = ascii_to_raw(msg)
     msg += md_padding(fake_len or len(msg), '<')
 
-    for chunk in break_raw_into_chunks(msg, 64):
-        state = _process_chunk(chunk, *state)
+    while msg:
+        state = _process_chunk(msg[:64], *state)
+        msg = msg[64:]
 
     output = struct.pack('<4I', *state)
     return output if raw else raw_to_hex(output)

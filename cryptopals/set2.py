@@ -69,7 +69,7 @@ def challenge12():
 
 def challenge13():
     # ECB cut-and-paste
-    
+
     key = Random.new().read(16)
 
     def sanitize_email(email):
