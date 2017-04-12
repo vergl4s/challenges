@@ -225,6 +225,41 @@ def aes_ecb_find_secret_appended_text(oracle, block_size):
             if secret_append:
                 return ascii_to_raw(secret_append)
 
+def interactive_padding_oracle(b64_s, block_size=8):
+    original_raw_list = list(b64_to_raw(b64_s))
+    raw_list = list(b64_to_raw(b64_s))
+    last_intermediate_block = [0]*8
+
+    for i in range(1,block_size+1):
+
+        list_of_attempts = []
+
+        for k in range(1, i):
+            raw_list[-block_size-k] = last_intermediate_block[-k] ^ i
+
+        for j in range(256):
+            raw_list[-block_size-i] = j
+            b64_attack_attempt = bytes_to_str(binascii.b2a_base64(bytes(raw_list)).rstrip())
+            list_of_attempts.append(b64_attack_attempt)
+
+        # with open('cpts.txt', 'w') as f:
+            # [f.write(a+"\n") for a in list_of_attempts]
+        [print(a) for a in list_of_attempts]
+
+        right_padding_cpt = input('B64 of the right padding attempt:')
+        last_intermediate_block[-i] = list_of_attempts.index(parse.unquote(right_padding_cpt)) ^ i
+        print(last_intermediate_block)
+
+    return last_intermediate_block
+
+def aes_cbc_arbitrary_msg(wanted_msg, intermediate_block):
+    assert(len(wanted_msg) == len(intermediate_block))
+    result = []
+    for i in range(len(intermediate_block)):
+        result.append(intermediate_block[i]^wanted_msg[i])
+    return result
+
+
 ####################################
 #      Stream Ciphers ahead        #
 ####################################
