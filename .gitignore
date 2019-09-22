@@ -1,2 +1,7 @@
 *.pyc
 __pycache__/*
+.gdb_history
+*.zip
+core
+peda-session-split.txt
+ropemporium/bin
